@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     CONFIG  ·  edit this block, nothing else
+     ══════════════════════════════════════════════════════════════════════════
+     CALENDLY_URL  >> PASTE DEVON'S CALENDLY LINK HERE AND NOTHING ELSE. <<
+                      Shape: https://calendly.com/<user>/<event>
+                      That one value is all it takes. The page captures the name
+                      and email FIRST; the scheduler then opens underneath the
+                      confirmation as the next step. Leave it "" and the form
+                      still works and still captures: the page simply confirms
+                      and never mentions booking. No empty frame, no dead link.
+     BOOKING_URL      Only for a NON-Calendly scheduler. Same sequence, but the
+                      next step is a button to that link instead of an embed.
+     CONTACT_EMAIL    Footer contact and the fallback if the form cannot send.
+     LEAD_ENDPOINT    Supabase REST insert target. Live and tested.
+     LEAD_KEY         Supabase publishable key. PUBLIC by design: the table is
+                      insert-only for it and it cannot read anything back.
+     ══════════════════════════════════════════════════════════════════════════ -->
+<script>
+window.CONFIG = {
+  CALENDLY_URL:    "https://calendly.com/gettappedin/connect-call?duration=55",
+  BOOKING_URL:     "",
+  CONTACT_EMAIL:   "david@tappedin.network",
+  LEAD_ENDPOINT:   "https://fjwkddovrnyfwyxmblet.supabase.co/rest/v1/asterisk_council_leads",
+  LEAD_KEY:        "sb_publishable_vxBLQvhjGq6HjoXgNyRj0w_vkGrj84F"
+};
+</script>
+
+<title>Asterisk Defense · Advisory Council</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Asterisk Defense tokens, copied verbatim from the Co-Founder Partnership
+     Term Sheet page (asterisk-termsheet/index.html). Additions are marked. */
+  --bg:#0D1F18; --bg2:#0A1812; --panel:rgba(36,61,48,0.5);
+  --gold:#C9A84C; --gold-lt:#E2C675; --gold-d:#A8872E; --gold-dim:rgba(201,168,76,0.5);
+  --cream:#F5F0E8; --text:rgba(245,240,232,0.72); --muted:rgba(245,240,232,0.5); --faint:rgba(245,240,232,0.34);
+  --line:rgba(201,168,76,0.16); --border:rgba(245,240,232,0.12);
+  --glow:rgba(201,168,76,0.11);
+  --grad:linear-gradient(110deg,#C9A84C 18%,#E2C675 50%,#C9A84C 82%);
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --serif:'Playfair Display',Georgia,serif;
+  --read:'Newsreader',Georgia,serif;
+
+  /* ADDED. --faint lands near 2.9:1 on --bg and --gold-dim near 2.8:1, so both
+     are hairlines only; anything a reader must read uses --quiet (5.8:1) or
+     --gold-lbl (5.0:1). --card is the action panel, the one lifted surface. */
+  --quiet:rgba(245,240,232,0.58);
+  --gold-lbl:rgba(201,168,76,0.8);
+  --surface:#07110C;
+  --card-a:#153225; --card-b:#0F2619;
+  --ease:cubic-bezier(.22,1,.36,1);
+
+  --sa-l:env(safe-area-inset-left,0px);
+  --sa-r:env(safe-area-inset-right,0px);
+  --sa-t:env(safe-area-inset-top,0px);
+  --sa-b:env(safe-area-inset-bottom,0px);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;min-width:0}
+/* .btn sets display:inline-flex, which silently beats the [hidden] default and
+   left the spent button on screen after a successful send. */
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;scrollbar-color:var(--gold-d) var(--surface)}
+body{
+  background:var(--surface);
+  color:var(--text);
+  font-family:var(--read); line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden; max-width:100%; overflow-wrap:break-word;
+  min-height:100svh;
+}
+
+/* ── browser surfaces we did not draw, themed from the palette ── */
+::selection{background:rgba(201,168,76,0.26);color:var(--cream)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.3);border-radius:6px;border:2px solid var(--surface)}
+::-webkit-scrollbar-thumb:hover{background:var(--gold-dim)}
+
+/* ── atmosphere: one tight falloff from above plus turbulence grain.
+      Pure CSS gradients and inline SVG. No raster, no generated asset.
+      Fixed, and parallaxed on scroll by GSAP when motion is allowed. ── */
+.underlay{position:fixed;inset:-12% 0;z-index:0;pointer-events:none}
+.underlay::before{content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(78% 34% at 50% 2%,var(--glow),transparent 64%),
+    radial-gradient(120% 64% at 50% 44%,rgba(13,31,24,0.92),transparent 72%);}
+.underlay::after{content:'';position:absolute;inset:0;opacity:.4;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");}
+
+/* ── one sheet lying on a darker surface ── */
+.stage{position:relative;z-index:1;min-height:100svh;display:flex;align-items:flex-start;
+  justify-content:center;
+  padding:calc(clamp(14px,3vh,44px) + var(--sa-t)) calc(16px + var(--sa-r))
+          clamp(18px,4vh,30px) calc(16px + var(--sa-l));}
+
+.sheet{width:100%;max-width:580px;background:var(--bg);
+  border:1px solid var(--border);border-radius:18px;
+  padding:clamp(19px,4.8vw,38px) clamp(20px,5.4vw,46px) clamp(24px,5.6vw,40px);
+  position:relative;overflow:hidden;
+  box-shadow:0 40px 90px -40px rgba(0,0,0,0.85),0 2px 0 0 rgba(245,240,232,0.04) inset;}
+.sheet::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold-dim) 22%,var(--gold-dim) 78%,transparent)}
+
+/* ════ masthead. Who is writing, before anything is offered. A logotype and a
+        plain-language line, closed by a rule. Identification, not a kicker. ════ */
+.mast{display:flex;align-items:flex-start;gap:clamp(10px,2.6vw,13px);
+  padding-bottom:clamp(11px,2.8vw,16px);position:relative;
+  margin-bottom:clamp(15px,4vw,26px)}
+.mast .rule{position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--line);
+  transform-origin:left center}
+.amark{flex:0 0 auto;width:clamp(17px,4.2vw,20px);height:clamp(17px,4.2vw,20px);
+  margin-top:1px;display:block;color:var(--gold)}
+.wordmark{display:block;font-family:var(--mono);font-size:clamp(11.5px,2.9vw,13px);
+  letter-spacing:0.26em;text-transform:uppercase;color:var(--gold);font-weight:600;line-height:1.3}
+.tagline{display:block;font-family:var(--read);font-size:clamp(13px,3.3vw,14.5px);
+  color:var(--quiet);line-height:1.4;margin-top:4px;max-width:34ch;text-wrap:balance}
+
+/* ════ TIER 1. The offer, in the biggest type on the page, alone. Nothing else
+        is allowed at this weight: the old subhead was competing with it. ════ */
+h1{font-family:var(--serif);font-weight:600;color:var(--cream);letter-spacing:-0.022em;
+  font-size:clamp(33px,8.4vw,49px);line-height:1.03;
+  font-variant-numeric:tabular-nums;max-width:19ch;
+  /* resting mask region. The opening tween animates the bottom inset from 108%
+     to this, so both keyframes are inset() and interpolate cleanly. */
+  clip-path:inset(-22% -6% -22% -6%);text-wrap:balance}
+
+/* ════ TIER 2. The question a cold reader is actually holding, asked out loud,
+        then answered in ordinary words, then the one capability claim. ════ */
+/* ════ the story layer ════════════════════════════════════════════════════
+   The five lines of this section are the argument, so they are never animated
+   into existence and never depend on the canvas. The canvas sits BEHIND them,
+   starts fully transparent, and is only faded in once a frame has actually
+   painted. No WebGL, no JS, a lost context or reduced motion all leave exactly
+   the typographic section that shipped in Round D. The scene bleeds to the
+   sheet's edges (the sheet clips it) so the light is never boxed inside the
+   element that emits it.                                                     */
+.what{margin-top:clamp(27px,6.8vw,40px);position:relative}
+.scene{position:absolute;z-index:0;pointer-events:none;
+  top:calc(-1 * clamp(18px,4.5vw,30px));bottom:calc(-1 * clamp(18px,4.5vw,30px));
+  left:calc(-1 * clamp(20px,5.4vw,46px));right:calc(-1 * clamp(20px,5.4vw,46px));
+  opacity:0;transition:opacity 1.2s var(--ease);
+  /* the canvas is cleared to black and screen-blended, so black contributes
+     nothing and only the lit filaments add light to the sheet. That is why
+     there is no visible canvas rectangle at any brightness. */
+  mix-blend-mode:screen;
+  -webkit-mask-image:radial-gradient(104% 68% at 48% 52%,#000 22%,rgba(0,0,0,.72) 54%,transparent 88%);
+  mask-image:radial-gradient(104% 68% at 48% 52%,#000 22%,rgba(0,0,0,.72) 54%,transparent 88%)}
+.scene canvas{display:block;width:100%;height:100%}
+/* screen blending can only add light, so legibility is bought back here, above
+   the canvas and below the type. Both layers fade in together and only once a
+   frame has painted, so neither one dims the static page. */
+/* Full-bleed, matching the scene. At inset:0 the scrim stopped at the section
+   box while the scene carried on past it, so its own left edge was a hard
+   0.88-alpha step running down beside the copy: a cast shadow, not a falloff.
+   Left and right now land on the sheet's border edge, where overflow:hidden
+   cuts everything anyway, and top and bottom are feathered by the mask, so
+   the layer has no edge of its own anywhere inside the card. */
+.scrim{position:absolute;z-index:1;pointer-events:none;opacity:0;
+  top:calc(-1 * clamp(30px,7vw,52px));bottom:calc(-1 * clamp(30px,7vw,52px));
+  left:calc(-1 * clamp(20px,5.4vw,46px));right:calc(-1 * clamp(20px,5.4vw,46px));
+  transition:opacity 1.2s var(--ease);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 18%,#000 82%,transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 18%,#000 82%,transparent 100%);
+  /* Stops follow a smootherstep so the slope is continuous. Four evenly
+     spaced stops have three slope breaks in them, and a slope break in a
+     gradient is a visible band, which is what made this read as an edge. */
+  background:linear-gradient(104deg,
+    rgba(13,31,24,0.880) 0%,    rgba(13,31,24,0.866) 11.5%,
+    rgba(13,31,24,0.789) 23%,   rgba(13,31,24,0.638) 34.5%,
+    rgba(13,31,24,0.440) 46%,   rgba(13,31,24,0.242) 57.5%,
+    rgba(13,31,24,0.091) 69%,   rgba(13,31,24,0.014) 80.5%,
+    rgba(13,31,24,0)     92%)}
+.what.lit .scene,.what.lit .scrim{opacity:1}
+.storytext{position:relative;z-index:2}
+.q{font-family:var(--serif);font-weight:600;color:var(--cream);
+  font-size:clamp(22px,5.5vw,27px);line-height:1.14;letter-spacing:-0.014em;
+  margin-bottom:clamp(9px,2.3vw,12px)}
+.ans{font-size:clamp(15.5px,3.9vw,17px);line-height:1.5;color:var(--text);max-width:45ch}
+.ans b{color:var(--cream);font-weight:500}
+
+/* Problem, then solution, then the proof. Three beats at three weights, so the
+   pain is read before the capability. The proof line is narrowed to exactly what
+   Knowledge/asterisk/UVP VERIFICATION 2026-10-04.md supports and no wider: the
+   draft-rule half alone is matched by five vendors, so the superlative sits only
+   on the join. No competitor is named. */
+.pitch{margin-top:clamp(15px,3.8vw,21px);padding-top:clamp(14px,3.5vw,19px);
+  border-top:1px solid var(--line)}
+.prob{font-size:clamp(13.5px,3.4vw,14.5px);line-height:1.46;color:var(--quiet);
+  max-width:42ch;margin-bottom:clamp(10px,2.6vw,13px)}
+.sol{display:flex;gap:clamp(9px,2.4vw,12px);align-items:flex-start}
+.sol .m{flex:0 0 auto;width:clamp(14px,3.4vw,16px);height:clamp(14px,3.4vw,16px);
+  color:var(--gold);margin-top:clamp(6px,1.6vw,8px)}
+.solh{font-family:var(--serif);font-weight:600;letter-spacing:-0.016em;
+  font-size:clamp(21px,5.3vw,25px);line-height:1.18;color:var(--cream)}
+.claim{font-size:clamp(14px,3.5vw,15.5px);line-height:1.46;color:var(--text);
+  max-width:40ch;margin-top:clamp(5px,1.4vw,7px)}
+.claim b{color:var(--gold-lt);font-weight:500}
+
+/* ════ TIER 3. The terms, composed rather than listed. Five facts are not
+        equally important, so they do not get equal weight: eligibility and the
+        role are procedural and recede into hairline rows (similarity), while
+        the trade the reader is actually weighing, what it asks against what it
+        carries, sits between them as one band at display weight and splits into
+        two columns (common region + proximity). Seats closes it, because the
+        headline already carries the number at 33px. ════ */
+.terms{margin-top:clamp(16px,4.2vw,30px)}
+.rows{margin:0}
+.rows .row{position:relative;padding:clamp(7px,1.9vw,12px) 0;
+  display:grid;grid-template-columns:98px 1fr;gap:11px;align-items:baseline}
+.rl{position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--line);
+  transform-origin:left center}
+.rows dt,.lbl{font-family:var(--mono);font-size:clamp(9.5px,2.4vw,10.5px);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--gold-lbl);line-height:1.5;white-space:nowrap}
+.rows dd{margin:0;font-size:clamp(13.5px,3.4vw,15.5px);line-height:1.42;color:var(--text);
+  max-width:44ch;font-variant-numeric:tabular-nums}
+.rows .left{display:block;font-family:var(--mono);font-size:clamp(10px,2.4vw,10.5px);
+  letter-spacing:.1em;color:var(--gold-lbl);margin-top:4px}
+@media(min-width:520px){ .rows .row{grid-template-columns:138px 1fr;gap:20px}
+  .rows dt{letter-spacing:.14em} }
+
+/* the band: the one place in the terms where type gets big */
+/* The band is bounded above by the last row's rule and below by its own, so it
+   reads as one region rather than as two stray cells before the panel. */
+.trade{position:relative;display:grid;grid-template-columns:1fr;
+  padding:clamp(14px,3.6vw,18px) 0 clamp(16px,4vw,21px)}
+.trade .cell{position:relative;padding:clamp(11px,2.8vw,14px) 0}
+.trade .cell:first-child{padding-top:0}
+.trade .cell:last-child{padding-bottom:0}
+.trade .cell+.cell::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:rgba(201,168,76,0.1)}
+.trade .big{font-family:var(--serif);font-weight:600;letter-spacing:-0.016em;
+  font-size:clamp(20px,5vw,24px);line-height:1.14;color:var(--cream);
+  font-variant-numeric:tabular-nums;margin-top:clamp(5px,1.4vw,7px)}
+.trade .sub{font-size:clamp(13px,3.3vw,14px);line-height:1.42;color:var(--quiet);
+  margin-top:clamp(3px,0.9vw,5px);max-width:30ch;text-wrap:balance}
+@media(min-width:520px){
+  /* the gap alone separates the cells and the rule rides in the middle of it, so
+     both columns get an identical measure. A padding-left on the second cell as
+     well made it 192px against 226px, which orphaned the last word of its head. */
+  .trade{--tg:clamp(22px,4.4vw,34px);grid-template-columns:1fr 1fr;column-gap:var(--tg)}
+  .trade .cell{padding:0}
+  .trade .cell+.cell::before{top:2px;bottom:2px;left:calc(var(--tg) / -2);
+    right:auto;width:1px;height:auto}
+  .trade>.rl{grid-column:1 / -1}
+}
+
+/* ════ THE DESTINATION. One panel, one gold control. Booking is not a rival
+        action any more: it is step two, and it only exists after a send. ════ */
+.act{position:relative;margin-top:clamp(16px,4.2vw,40px);
+  background:linear-gradient(180deg,var(--card-a),var(--card-b));
+  border:1px solid rgba(201,168,76,0.3);border-radius:15px;
+  padding:clamp(22px,5.2vw,30px) clamp(18px,4.6vw,28px) clamp(20px,4.8vw,26px);
+  box-shadow:0 28px 64px -34px rgba(0,0,0,0.92),0 1px 0 0 rgba(245,240,232,0.07) inset;}
+.act::before{content:'';position:absolute;top:-1px;left:clamp(14px,4.6vw,28px);right:clamp(14px,4.6vw,28px);
+  height:3px;border-radius:3px;background:var(--grad);
+  box-shadow:0 0 24px -1px rgba(201,168,76,0.68)}
+.actglow{position:absolute;inset:-1px;border-radius:15px;pointer-events:none;
+  background:radial-gradient(74% 62% at 50% 0,rgba(201,168,76,0.15),transparent 70%)}
+.act > *{position:relative}
+.acth{font-family:var(--serif);font-weight:600;color:var(--cream);
+  font-size:clamp(21px,5.2vw,25px);line-height:1.12;letter-spacing:-0.012em}
+.actnote{font-size:clamp(13.5px,3.4vw,14.5px);line-height:1.45;color:var(--quiet);
+  margin-top:7px;max-width:40ch}
+
+.btnwrap{margin-top:clamp(16px,4vw,20px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;width:100%;
+  font-family:var(--mono);font-size:clamp(11.5px,2.9vw,12.5px);letter-spacing:0.16em;
+  text-transform:uppercase;font-weight:600;text-decoration:none;cursor:pointer;
+  padding:18px 20px;border-radius:12px;border:1px solid transparent;
+  transition:transform .2s var(--ease),box-shadow .3s var(--ease),
+             background .2s ease,border-color .2s ease,color .2s ease}
+.btn-solid{background:var(--grad);color:#0B1A14;
+  box-shadow:0 10px 26px -14px rgba(201,168,76,0.55),0 0 0 0 rgba(201,168,76,0)}
+@media(hover:hover){
+  .btn-solid:hover{transform:translateY(-2px);
+    box-shadow:0 16px 34px -14px rgba(201,168,76,0.72),0 0 0 4px rgba(201,168,76,0.1)}
+}
+.btn-solid:active{transform:translateY(0) scale(.988);
+  box-shadow:0 4px 14px -10px rgba(201,168,76,0.6),0 1px 2px 0 rgba(0,0,0,0.3) inset}
+.btn:focus-visible{outline:2px solid var(--gold-lt);outline-offset:3px}
+.btn[disabled]{opacity:.55;cursor:default;transform:none;box-shadow:none}
+
+/* The fields are open from the start: asking for a name is a smaller ask than
+   a button that says "request", and one less tap on a phone at a conference.
+   The collapse still runs, backwards, to hand the panel over to the calendar. */
+.reveal{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease),
+  opacity .35s ease,visibility 0s linear .45s;opacity:0;visibility:hidden}
+.reveal > div{overflow:hidden}
+/* visibility, not only height: a collapsed field must leave the tab order too */
+.reveal.open{grid-template-rows:1fr;opacity:1;visibility:visible;transition-delay:0s}
+.fields{display:flex;flex-direction:column;gap:9px;padding-top:clamp(14px,3.4vw,18px)}
+@media(min-width:520px){.fields{flex-direction:row}.fields input{flex:1 1 0}}
+input[type=text],input[type=email]{
+  width:100%;font-family:var(--read);font-size:16px;color:var(--cream);caret-color:var(--gold);
+  background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:11px;
+  padding:14px 15px;line-height:1.4;transition:border-color .2s ease,background .2s ease}
+input::placeholder{color:var(--quiet)}
+input:focus{outline:none;border-color:var(--gold-dim);background:rgba(0,0,0,0.42)}
+input:focus-visible{outline:2px solid var(--gold-dim);outline-offset:2px}
+.hp{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Calendly's data-resize reports a 2px height until its first resize message,
+   and on some embed domains that message never lands, which collapses the
+   calendar to nothing. A min-height means the embed is always usable, and it
+   can still grow past this if the handshake does arrive. */
+#cal-mount .calendly-inline-widget{min-width:260px;min-height:clamp(620px,90vh,760px)}
+.msg{font-family:var(--mono);font-size:clamp(11px,2.7vw,11.5px);line-height:1.6;
+  margin-top:12px;display:none;position:relative}
+.msg.show{display:block}
+.msg.ok{color:var(--gold-lt)}
+.msg.err{color:#EFB49C}
+
+/* ── step two. Exists only after a successful send, and only when a scheduler
+      is configured. The confirmation above it stays on screen. ── */
+.next{margin-top:clamp(18px,4.4vw,24px);padding-top:clamp(16px,4vw,22px);
+  border-top:1px solid rgba(201,168,76,0.22)}
+.nexth{font-family:var(--serif);font-weight:600;color:var(--cream);
+  font-size:clamp(18px,4.5vw,21px);line-height:1.15;letter-spacing:-0.012em;
+  margin-bottom:clamp(12px,3vw,16px)}
+/* Explicit height or the widget collapses; width and min-width pinned so
+   Calendly's own min-width cannot push a 375px screen sideways. */
+.calendly-inline-widget{width:100%;max-width:100%;min-width:0!important;
+  height:660px;overflow:hidden;border-radius:11px;background:var(--bg2)}
+@media(max-width:520px){ .calendly-inline-widget{height:740px} }
+
+/* ── signature ── */
+.sig{margin-top:clamp(26px,6vw,36px);padding-top:clamp(18px,4.2vw,24px);
+  border-top:1px solid var(--border);
+  display:grid;grid-template-columns:1fr;gap:clamp(15px,3.8vw,20px)}
+@media(min-width:520px){ .sig{grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,30px)} }
+.sig .nm{font-family:var(--serif);font-size:clamp(17px,4.2vw,20px);color:var(--cream);font-weight:600}
+.sig .ro{font-family:var(--mono);font-size:clamp(10px,2.4vw,10.5px);letter-spacing:0.05em;
+  color:var(--quiet);text-transform:uppercase;margin-top:7px;line-height:1.72;
+  text-wrap:balance}
+
+.fine{font-family:var(--mono);font-size:clamp(10.5px,2.5vw,11px);color:var(--quiet);
+  line-height:1.8;text-align:center;letter-spacing:0.03em;position:relative;z-index:1;
+  width:100%;max-width:580px;margin:0 auto;
+  padding:0 calc(24px + var(--sa-r)) calc(clamp(24px,4.5vh,38px) + var(--sa-b)) calc(24px + var(--sa-l))}
+.fine a{color:var(--gold-lt);text-decoration:none;border-bottom:1px solid var(--border)}
+.fine a:hover{color:var(--cream)}
+.fine a:focus-visible{outline:2px solid var(--gold-lt);outline-offset:3px;border-radius:2px}
+
+/* Motion is added by GSAP only, and only from an already-visible default, so
+   reduced motion, a blocked CDN and no JS all render the full hierarchy. */
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="underlay" id="underlay"></div>
+
+<main class="stage">
+  <article class="sheet">
+
+    <!-- 1 · WHO IS ASKING -->
+    <header class="mast">
+      <svg class="amark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+           stroke-width="2.1" stroke-linecap="round">
+        <path d="M12 3.8v16.4"/><path d="M4.9 7.9l14.2 8.2"/><path d="M19.1 7.9L4.9 16.1"/>
+      </svg>
+      <div>
+        <span class="wordmark">Asterisk Defense</span>
+        <span class="tagline">Risk and compliance for crypto and digital assets</span>
+      </div>
+      <span class="rule" aria-hidden="true"></span>
+    </header>
+
+    <!-- 2 · WHAT IS OFFERED -->
+    <h1>The Advisory&nbsp;Council</h1>
+
+    <!-- 3 · THE QUESTION, THE STAKES, THE ANSWER, THE PROOF.
+         The answer names the buyer, a firm with nobody doing this job, and draws
+         the policy-versus-behavior line, which is the distinction this reader
+         has spent a career on. The proof is narrowed to the join and nothing
+         wider: Knowledge/asterisk/UVP VERIFICATION 2026-10-04.md lines 13 and
+         106. No competitor is named. -->
+    <section class="what" id="story">
+      <div class="scene" id="scene" aria-hidden="true"><canvas id="storycv"></canvas></div>
+      <div class="scrim" aria-hidden="true"></div>
+      <div class="storytext">
+      <h2 class="q">What is AURA?</h2>
+      <p class="ans">Compliance software for crypto firms with no compliance team. It plugs into the systems they already run.</p>
+      <div class="pitch">
+        <p class="prob">Those firms learn they broke a rule when a regulator tells them. By then it is an enforcement action, not a fix.</p>
+        <div class="sol">
+          <svg class="m" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+               stroke-width="2.3" stroke-linecap="round">
+            <path d="M12 3.8v16.4"/><path d="M4.9 7.9l14.2 8.2"/><path d="M19.1 7.9L4.9 16.1"/>
+          </svg>
+          <div>
+            <p class="solh">AURA tells them first.</p>
+            <p class="claim">The only software that checks a firm's actual behavior <b>against rules that have not passed yet.</b></p>
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- 4 · THE TERMS, COMPOSED. Two procedural rows recede, the trade the
+         reader is weighing sits between them at display weight in two columns,
+         and the seat count closes. All five facts are documented: company brief
+         line 410 [COUNCIL]. -->
+    <section class="terms">
+      <dl class="rows">
+        <div class="row"><dt>Qualifications</dt><dd>Former regulator, supervisor or FIU principal.</dd><span class="rl"></span></div>
+        <div class="row"><dt>Your role</dt><dd>Read how AURA interprets a rule. Say where an examiner would disagree.</dd><span class="rl"></span></div>
+      </dl>
+
+      <div class="trade">
+        <div class="cell">
+          <div class="lbl">Commitment</div>
+          <div class="big">1 hour a quarter</div>
+          <div class="sub">Nothing in between. 12-month term.</div>
+        </div>
+        <div class="cell">
+          <div class="lbl">Your seat</div>
+          <div class="big">12 months of AURA</div>
+          <div class="sub">Your own practice. Complimentary.</div>
+        </div>
+        <span class="rl"></span>
+      </div>
+    </section>
+
+    <!-- 5 · ONE ACTION. The lead is captured first and is captured whether or
+         not they ever book; the scheduler is step two, revealed on success. -->
+    <section class="act" id="act">
+      <span class="actglow" id="actglow" aria-hidden="true"></span>
+      <h2 class="acth">Take a seat</h2>
+      <p class="actnote" id="actnote">Name and email, nothing else.</p>
+
+      <form id="leadform" novalidate>
+        <div class="reveal open" id="revealbox">
+          <div>
+            <div class="fields">
+              <label class="hp" for="lf-name">Name</label>
+              <input type="text" id="lf-name" name="name" autocomplete="name" maxlength="160" placeholder="Name">
+              <label class="hp" for="lf-email">Email</label>
+              <input type="email" id="lf-email" name="email" autocomplete="email" maxlength="254" placeholder="Email" inputmode="email">
+            </div>
+            <div class="hp" aria-hidden="true">
+              <label for="lf-org">Organisation</label>
+              <input type="text" id="lf-org" name="organisation" tabindex="-1" autocomplete="off">
+            </div>
+          </div>
+        </div>
+        <div class="btnwrap" id="btnwrap">
+          <button class="btn btn-solid" type="submit" id="getbtn">Send</button>
+        </div>
+        <div class="msg" id="lf-msg" role="status" aria-live="polite"></div>
+      </form>
+
+      <!-- step two. Removed outright when no scheduler is configured. -->
+      <div class="next" id="next" hidden>
+        <h3 class="nexth" id="nexth">Now pick a time</h3>
+        <div id="cal-mount"></div>
+        <div class="btnwrap" id="extwrap" hidden style="margin-top:0">
+          <a class="btn btn-solid" id="bookbtn" href="#" target="_blank" rel="noopener noreferrer">Book a call</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="sig">
+      <div>
+        <div class="nm">Devon J. Euring</div>
+        <div class="ro">Co-Founder and Chief Risk Officer<br>Senior Advisor, CAT Investigators</div>
+      </div>
+      <div>
+        <div class="nm">David Williams</div>
+        <div class="ro">Co-Founder and Chief Product Officer</div>
+      </div>
+    </footer>
+
+  </article>
+</main>
+
+<p class="fine">Exploratory, not a commitment. Your details are not shared. <a id="contactlink" href="#">contact</a></p>
+
+<script defer>
+/* ───────────────────────────────────────────────────────────────────────────
+   AURA story scene · one WebGL2 fragment shader, lit-flow architecture.
+
+   THE ARGUMENT, DRAWN. The product is a join between two things that drift
+   apart. So: one filament is what the firm actually does, the other is the
+   rule. They leave the left edge as a single strand, separate as they travel
+   right, and the gap between them is the only part of the frame nothing lights.
+   At the enforcement beat the gold drains out of both and the gap is at its
+   widest, in the dark. Then a light enters at the seam and runs the length of
+   the gap, and the divergence is legible again while it is still narrow.
+
+   AURA is the light, not the line. It does not close the gap, it makes the gap
+   visible early. That is what the product actually does.
+
+   WHY NOT THREE.JS. cdnjs serves four files per three.js version and no
+   examples/jsm at any version, so EffectComposer and UnrealBloomPass are simply
+   unreachable from the CDN this page is allowed to use. Three.js plus addons
+   from a second CDN is ~700KB of script for a background, on a page whose job
+   is six senior people opening a link on conference wifi. lit-flow, the bar
+   David named, solves the same problem with one full-screen shader and the GSAP
+   this page already loads. Lighting, bevel and bloom all happen in the fragment
+   stage here: a three-term gold environment, a GGX specular lobe with Fresnel,
+   and an analytic bloom taken from the curve distance field.
+   ─────────────────────────────────────────────────────────────────────────── */
+(function(){
+  'use strict';
+
+  var VERT =
+'#version 300 es\n'+
+'void main(){\n'+
+'  vec2 p = vec2(float((gl_VertexID<<1)&2), float(gl_VertexID&2));\n'+
+'  gl_Position = vec4(p*2.0-1.0, 0.0, 1.0);\n'+
+'}\n';
+
+  var FRAG =
+'#version 300 es\n'+
+'precision highp float;\n'+
+'out vec4 outColor;\n'+
+'uniform vec2  uRes;\n'+
+'uniform float uTime, uSpread, uWarm, uRelight, uLightX, uDust;\n'+
+'uniform vec4  uSafe;\n'+
+'uniform vec3  uGold, uGoldLt, uCool;\n'+
+
+'float envelope(float t){ t = clamp(t,0.0,1.0); return t*t*(3.0-2.0*t); }\n'+
+
+/* centre line of filament `dir` at horizontal position x */
+'float curveY(float x, float dir){\n'+
+'  float t = clamp(x*0.5+0.5, 0.0, 1.0);\n'+
+'  float e = envelope(t);\n'+
+'  return dir*e*uSpread\n'+
+'       + dir*sin(t*5.1 + uTime*0.55)*0.013*e\n'+
+'       + sin(t*3.3 - uTime*0.40)*0.009*(1.0-e*0.6);\n'+
+'}\n'+
+'float curveSlope(float x, float dir){\n'+
+'  float h = 0.012;\n'+
+'  return (curveY(x+h,dir) - curveY(x-h,dir)) / (2.0*h);\n'+
+'}\n'+
+
+/* ── the gold environment, three terms, no probe texture ──────────────────
+   Warm key from above, warmer fill from the side, cool rim from below. The
+   same recipe the house PMREM gold bakes, evaluated analytically.         */
+'vec3 envGold(vec3 n){\n'+
+'  float key  = max(dot(n, normalize(vec3( 0.35, 0.86, 0.38))), 0.0);\n'+
+'  float fill = max(dot(n, normalize(vec3(-0.78, 0.22, 0.58))), 0.0);\n'+
+'  float rim  = max(dot(n, normalize(vec3( 0.05,-0.94, 0.33))), 0.0);\n'+
+'  vec3 c = uGoldLt * pow(key,1.6) * 0.95;\n'+
+'  c += uGold * pow(fill,2.1) * 0.55;\n'+
+'  c += uCool * pow(rim ,2.6) * 0.42;\n'+
+'  c += uGold * 0.10;\n'+
+'  return c;\n'+
+'}\n'+
+
+'float ggx(vec3 n, vec3 h, float r){\n'+
+'  float a = r*r; float nh = max(dot(n,h),0.0);\n'+
+'  float d = nh*nh*(a*a-1.0)+1.0;\n'+
+'  return a*a/(3.14159*d*d + 1e-5);\n'+
+'}\n'+
+
+'void main(){\n'+
+'  float asp = uRes.x/uRes.y;\n'+
+'  vec2 uv0 = (gl_FragCoord.xy/uRes - 0.5)*2.0;  uv0.x *= asp;\n'+
+'  vec2 uv = uv0; uv.y += 0.42;\n'+
+
+'  vec3 col = vec3(0.0);\n'+
+'  float R = 0.029;\n'+   /* the tube reads as a tube, not a hairline */
+'  vec3 V = vec3(0.0,0.0,1.0);\n'+
+'  vec2 LP = vec2(uLightX, 0.0);\n'+
+'  float ld = length(uv - LP);\n'+
+
+'  for(int i=0;i<2;i++){\n'+
+'    float dir = (i==0) ? 1.0 : -1.0;\n'+
+'    float cy  = curveY(uv.x, dir);\n'+
+'    float sl  = curveSlope(uv.x, dir);\n'+
+'    float dist = (uv.y - cy) / sqrt(1.0 + sl*sl);\n'+
+'    float s   = clamp(dist/R, -1.0, 1.0);\n'+
+
+'    vec3 N = normalize(vec3(-sl*s*0.35, s, sqrt(max(0.0,1.0-s*s))+0.22));\n'+
+'    /* pixel-aware edge: at a fixed uv width the core lands on ~1px and\n'+
+'       steps 70 -> 159 -> 106 in three rows, which is an aliased hairline,\n'+
+'       not a lit surface. fwidth keeps the falloff ~1.5px at any DPR. */\n'+
+'    float aa   = fwidth(dist) * 1.6;\n'+
+'    float body = 1.0 - smoothstep(R*0.52 - aa, R*1.04 + aa, abs(dist));\n'+
+
+'    vec3 L = normalize(vec3(0.3,0.8,0.52));\n'+
+'    vec3 H = normalize(L+V);\n'+
+'    float fres = pow(1.0 - max(dot(N,V),0.0), 3.0);\n'+
+'    vec3 metal = envGold(N) * (0.55 + 0.45*uWarm);\n'+
+'    metal += uGoldLt * ggx(N,H,0.26) * (0.9 + 1.5*uWarm);\n'+
+'    metal += uGoldLt * fres * 0.30 * uWarm;\n'+
+
+'    float lit = uRelight / (1.0 + 26.0*ld*ld);\n'+
+'    metal += uGoldLt * lit * 1.5 * max(dot(N, normalize(vec3(LP-uv,0.5))),0.0);\n'+
+'    col += metal * body;\n'+
+
+/*   analytic bloom off the same distance field, two widths, no second pass */
+'    float g1 = exp(-abs(dist)/(R*3.4));\n'+
+'    float g2 = exp(-abs(dist)/(R*11.0));\n'+
+'    vec3  em = mix(uGold, uGoldLt, 0.35) * (0.30 + 0.85*uWarm);\n'+
+'    col += em * (g1*0.34 + g2*0.07);\n'+
+'    col += uGoldLt * (g1*0.5 + g2*0.22) * lit * 1.1;\n'+
+'  }\n'+
+
+'  col += uGoldLt * uRelight * exp(-ld*22.0) * 1.5;\n'+
+'  col += uGoldLt * uRelight * exp(-ld*5.5) * 0.18;\n'+
+
+'  if(uDust > 0.001){\n'+
+'    vec2 g = uv*vec2(7.0,11.0) + vec2(uTime*0.02, sin(uTime*0.2)*0.1);\n'+
+'    vec2 id = floor(g);\n'+
+'    float h = fract(sin(dot(id,vec2(41.3,289.1)))*43758.5453);\n'+
+'    vec2 c  = fract(g)-0.5;\n'+
+'    float m = smoothstep(0.08,0.0,length(c)) * step(0.955,h);\n'+
+'    col += uGoldLt * m * uDust;\n'+
+'  }\n'+
+
+/* filmic shoulder so the bloom rolls off instead of clipping to white */
+'  col *= 0.56;\n'+
+'  /* copy guard. uSafe is the union of the real glyph boxes, so the taper is\n'+
+'     1.0 everywhere a letter can land and falls away only outside it.\n'+
+'     The distance is the rounded-box SDF, not max(dx,dy): a Chebyshev box\n'+
+'     has straight edges and square corners, and the eye reads that as a\n'+
+'     cast shadow rather than as light falling off. */\n'+
+'  vec2  qd  = max(uSafe.xy - uv0, uv0 - uSafe.zw);\n'+
+'  float d   = length(max(qd, 0.0)) + min(max(qd.x, qd.y), 0.0);\n'+
+'  float ins = 1.0 - smoothstep(0.0, 0.58, d);\n'+
+'        ins = ins*ins*(3.0 - 2.0*ins);   /* C1 at both ends, no terminator */\n'+
+'  col *= mix(1.0, 0.34, ins);\n'+
+'  col = (col*(2.51*col+0.03))/(col*(2.43*col+0.59)+0.14);\n'+
+'  col = clamp(col, 0.0, 1.0);\n'+
+'  /* A luminance ceiling is still needed, because a taper alone cannot hold\n'+
+'     it: the light core runs ~20 units before tone mapping. But a hard clip\n'+
+'     draws a contour wherever the light crosses the cap, which is the sharp\n'+
+'     edge. This is a soft knee instead: it approaches the cap and never\n'+
+'     reaches it, so there is no edge anywhere, at any brightness.\n'+
+'     cap 0.42 => peak output 0.42/1.42 = 0.296 sRGB, which screened over\n'+
+'     the sheet keeps cream type above 6:1. The cap is ramped in log space\n'+
+'     so the knee eases in across the feather instead of snapping on. */\n'+
+'  float L   = dot(col, vec3(0.2126, 0.7152, 0.0722));\n'+
+'  float cap = exp(mix(2.0794415, -0.8675006, ins));\n'+
+'  col /= (1.0 + L/cap);\n'+
+'  outColor = vec4(col, 1.0);\n'+
+'}\n';
+
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function smooth(e0,e1,x){ var t=clamp((x-e0)/(e1-e0),0,1); return t*t*(3-2*t); }
+  function hex(h){ return [((h>>16)&255)/255, ((h>>8)&255)/255, (h&255)/255]; }
+
+  window.AURA_SCENE = function(){
+    var host = document.getElementById('scene');
+    var cv   = document.getElementById('storycv');
+    var sect = document.getElementById('story');
+    if(!host || !cv || !sect) return false;
+
+    var gl = null;
+    try{ gl = cv.getContext('webgl2', { alpha:false, antialias:false,
+                                        powerPreference:'high-performance' }); }
+    catch(e){ gl = null; }
+    if(!gl) return false;
+
+    function build(type, src){
+      var sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh);
+      if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)){
+        window.AURA_ERR = gl.getShaderInfoLog(sh); gl.deleteShader(sh); return null; }
+      return sh;
+    }
+    var vs = build(gl.VERTEX_SHADER, VERT), fs = build(gl.FRAGMENT_SHADER, FRAG);
+    if(!vs || !fs) return false;
+    var prog = gl.createProgram();
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){
+      window.AURA_ERR = gl.getProgramInfoLog(prog); return false; }
+    gl.useProgram(prog);
+    gl.bindVertexArray(gl.createVertexArray());
+
+    var U = {}, txt = sect.querySelector('.storytext');
+    /* The union of every line box in the copy. The container is full-bleed,
+       but the measure caps at 45ch, so using the container would needlessly
+       dim the open column on the right. */
+    function glyphBox(){
+      if(!txt || !document.createTreeWalker) return null;
+      var r = document.createRange(), b = null;
+      var w = document.createTreeWalker(txt, NodeFilter.SHOW_TEXT, null, false), n;
+      while((n = w.nextNode())){
+        if(!/\S/.test(n.nodeValue)) continue;
+        r.selectNodeContents(n);
+        var rs = r.getClientRects();
+        for(var i=0;i<rs.length;i++){
+          var q = rs[i]; if(!q.width || !q.height) continue;
+          b = b ? { left:Math.min(b.left,q.left),   top:Math.min(b.top,q.top),
+                    right:Math.max(b.right,q.right), bottom:Math.max(b.bottom,q.bottom) }
+                : { left:q.left, top:q.top, right:q.right, bottom:q.bottom };
+        }
+      }
+      return b;
+    }
+    ['uRes','uTime','uSpread','uWarm','uRelight','uLightX','uDust','uSafe',
+     'uGold','uGoldLt','uCool'].forEach(function(n){ U[n]=gl.getUniformLocation(prog,n); });
+
+    var a = hex(0xC9A84C), b = hex(0xE2C675), c = hex(0x7FA890);
+    gl.uniform3f(U.uGold, a[0],a[1],a[2]);
+    gl.uniform3f(U.uGoldLt, b[0],b[1],b[2]);
+    gl.uniform3f(U.uCool, c[0],c[1],c[2]);
+
+    var small = Math.min(window.innerWidth, window.innerHeight) < 520;
+    var progress=0, shown=0, running=false, raf=0, dirty=true, lastKey='';
+    var t0 = performance.now(), frames=0, fpsT=t0;
+
+    function size(){
+      var cw = host.clientWidth, ch = host.clientHeight;
+      if(!cw || !ch) return;
+      /* hard cap, then a total pixel budget, the way lit-flow does it */
+      var dpr = Math.min(window.devicePixelRatio||1, small ? 1.5 : 2);
+      var budget = small ? 1.6e6 : 3.2e6;
+      if(cw*ch*dpr*dpr > budget) dpr = Math.sqrt(budget/(cw*ch));
+      var W = Math.max(1,Math.round(cw*dpr)), H = Math.max(1,Math.round(ch*dpr));
+      if(cv.width!==W || cv.height!==H){ cv.width=W; cv.height=H; }
+      gl.viewport(0,0,W,H); gl.uniform2f(U.uRes,W,H);
+      /* the copy rect, in the shader's own centred/aspect-corrected space */
+      var hb = host.getBoundingClientRect(), tb = glyphBox() || hb;
+      var asp = cw/ch;
+      var x0 = ((tb.left - hb.left)/hb.width  - 0.5)*2*asp;
+      var x1 = ((tb.right- hb.left)/hb.width  - 0.5)*2*asp;
+      var y1 = (0.5 - (tb.top   - hb.top)/hb.height)*2;
+      var y0 = (0.5 - (tb.bottom- hb.top)/hb.height)*2;
+      gl.uniform4f(U.uSafe, x0, y0, x1, y1);
+      dirty = true;
+    }
+
+    function draw(now){
+      if(!running){ raf=0; return; }
+      raf = requestAnimationFrame(draw);
+      var time = (now-t0)/1000;
+      shown += (progress - shown) * 0.09;
+      var p = shown;
+
+      var spread  = 0.038 + smooth(0.17,0.63,p)*0.40 - smooth(0.74,0.97,p)*0.185;
+      var drain   = smooth(0.40,0.66,p);
+      var relight = smooth(0.70,0.93,p);
+      var warm    = clamp(1 - drain*0.88 + relight*0.55, 0, 1.4);
+      var lightX  = -1.0 + 2.0*smooth(0.69,1.0,p);
+      var dust    = small ? 0 : (0.16*(1-drain*0.55) + relight*0.1);
+
+      /* lit-flow's idle bail: nothing moved to this tolerance, skip the GPU */
+      var key = spread.toFixed(4)+','+warm.toFixed(3)+','+relight.toFixed(3)+','+
+                lightX.toFixed(3)+','+(time*0.55).toFixed(1);
+      if(key===lastKey && !dirty) return;
+      lastKey = key; dirty = false;
+
+      gl.uniform1f(U.uTime,time);     gl.uniform1f(U.uSpread,spread);
+      gl.uniform1f(U.uWarm,warm);     gl.uniform1f(U.uRelight,relight);
+      gl.uniform1f(U.uLightX,lightX); gl.uniform1f(U.uDust,dust);
+      gl.drawArrays(gl.TRIANGLES,0,3);
+
+      frames++;
+      if(now-fpsT>1000){ window.AURA_FPS='fps='+Math.round(frames*1000/(now-fpsT));
+                         frames=0; fpsT=now; }
+      if(!sect.classList.contains('lit')) sect.classList.add('lit');
+    }
+
+    function start(){ if(!running){ running=true; dirty=true;
+                        t0=performance.now()-16; fpsT=performance.now();
+                        raf=requestAnimationFrame(draw); } }
+    function stop(){ running=false; if(raf) cancelAnimationFrame(raf); raf=0; }
+
+    size();
+    if(window.ResizeObserver) new ResizeObserver(size).observe(host);
+    else window.addEventListener('resize', size);
+    /* A late webfont swap can reflow the measure without changing the section
+       height, which would leave the copy guard sized to fallback metrics. */
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(size).catch(function(){});
+
+    if(window.IntersectionObserver){
+      new IntersectionObserver(function(es){ es[0].isIntersecting ? start() : stop(); },
+        { rootMargin:'160px 0px' }).observe(host);
+    } else start();
+    document.addEventListener('visibilitychange', function(){
+      if(document.hidden) stop();
+      else if(host.getBoundingClientRect().top < window.innerHeight*1.2) start();
+    });
+
+    /* a lost context leaves the typography, never a dead rectangle */
+    cv.addEventListener('webglcontextlost', function(ev){
+      ev.preventDefault(); stop(); sect.classList.remove('lit');
+      setTimeout(function(){ if(host.parentNode) host.parentNode.removeChild(host); }, 1200);
+    }, false);
+
+    window.AURA_SET  = function(v){ progress = clamp(v,0,1); dirty = true; };
+    window.AURA_KILL = function(){ stop(); sect.classList.remove('lit');
+      if(host.parentNode) host.parentNode.removeChild(host); };
+    return true;
+  };
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
+<script defer>
+window.addEventListener('DOMContentLoaded', function(){
+  'use strict';
+  var C = window.CONFIG || {};
+  var reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var el = function(id){ return document.getElementById(id); };
+  var drop = function(n){ if(n && n.parentNode) n.parentNode.removeChild(n); };
+
+  /* ── contact ─────────────────────────────────────────────────────────── */
+  var mail = String(C.CONTACT_EMAIL||'').trim();
+  var cl = el('contactlink');
+  if(mail && cl){ cl.href = 'mailto:'+mail; cl.textContent = mail; }
+  else { drop(cl); }
+
+  /* ── the sequence ────────────────────────────────────────────────────────
+     There is one action on the page: the form. Booking is step two and only
+     exists after a successful capture, so the lead is recorded whether or not
+     they ever pick a time. With no scheduler configured the page simply
+     confirms and never mentions booking.                                   */
+  var calUrl  = String(C.CALENDLY_URL||'').trim();
+  var bookUrl = String(C.BOOKING_URL||'').trim();
+  var isUrl   = function(u){ return /^https?:\/\/\S+$/i.test(u); };
+  var hasCal  = /^https?:\/\/([a-z0-9-]+\.)*calendly\.com\//i.test(calUrl);
+  var hasExt  = !hasCal && isUrl(bookUrl);
+  var hasNext = hasCal || hasExt;
+  var calDone = false;
+
+  if(!hasNext){
+    drop(el('next'));
+  } else {
+    el('actnote').textContent = 'Name and email. The calendar opens once you send it.';
+    if(hasCal){ drop(el('extwrap')); }
+    else {
+      drop(el('cal-mount'));
+      el('nexth').textContent = 'Now book your call';
+      el('bookbtn').href = bookUrl;
+      el('extwrap').hidden = false;
+    }
+  }
+
+  function mountCalendly(){
+    if(calDone || !hasCal) return; calDone = true;
+    var q = 'hide_gdpr_banner=1&background_color=0A1812&text_color=F5F0E8&primary_color=C9A84C';
+    var w = document.createElement('div');
+    w.className = 'calendly-inline-widget';
+    w.setAttribute('data-url', calUrl + (calUrl.indexOf('?')>-1 ? '&' : '?') + q);
+    w.setAttribute('data-resize','true');
+    el('cal-mount').appendChild(w);
+    var sc = document.createElement('script');
+    sc.src = 'https://assets.calendly.com/assets/external/widget.js';
+    sc.async = true;
+    document.head.appendChild(sc);
+  }
+
+  /* step two arrives as progress, not as a page jump: the block fades and
+     rises while the page scrolls to meet it, and the embed mounts only once
+     the transform is cleared, or it mis-sizes. The confirmation stays above. */
+  function revealNext(){
+    var n = el('next'); if(!n) return;
+    n.hidden = false;
+    var settle = function(){ mountCalendly(); };
+    var bring  = function(smooth){
+      var y = n.getBoundingClientRect().top + window.scrollY - 20;
+      try{ window.scrollTo({ top:y, behavior: smooth ? 'smooth' : 'auto' }); }
+      catch(e){ window.scrollTo(0,y); }
+    };
+    if(reduce || !window.gsap){ settle(); bring(false); return; }
+    window.gsap.from(n, { y:18, opacity:0, duration:.9, ease:'power3.out',
+      clearProps:'transform,opacity', onComplete:settle });
+    setTimeout(function(){ bring(true); }, 130);
+  }
+
+  /* ── the form. One control, label changes with state. ────────────────── */
+  var form = el('leadform'), rev = el('revealbox'), msg = el('lf-msg'),
+      get = el('getbtn');
+  function show(k,t){ msg.className = 'msg show '+k; msg.textContent = t; }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(el('lf-org').value) return;                                    /* honeypot */
+
+    var name = form.name.value.trim(), email = form.email.value.trim();
+    if(name.length < 2){ show('err','Please add your name.'); return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ show('err','That email does not look right.'); return; }
+
+    var ep = String(C.LEAD_ENDPOINT||'').trim(), key = String(C.LEAD_KEY||'').trim();
+    if(!ep || !key){ show('err','Not connected yet. Please email '+(mail||'us')+'.'); return; }
+
+    get.disabled = true; get.textContent = 'Sending'; show('ok','');
+    fetch(ep,{method:'POST',headers:{
+        'apikey':key,'Authorization':'Bearer '+key,
+        'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({name:name,email:email,source:'council-invitation'})
+    }).then(function(r){
+      if(!r.ok) throw new Error(r.status);
+      rev.classList.remove('open');
+      get.hidden = true;
+      show('ok', hasNext ? 'Received. Devon has your details.'
+                         : 'Received. Devon will come back to you directly.');
+      revealNext();
+    }).catch(function(){
+      get.disabled = false; get.textContent = 'Send';
+      show('err','That did not send. Please email '+(mail||'us')+'.');
+    });
+  });
+
+  /* ── motion ──────────────────────────────────────────────────────────────
+     Four gestures, not one entrance repeated: the headline unmasks, the
+     reading blocks rise, the term rules draw in from the left, and the action
+     panel arrives last with its glow blooming up. Everything is visible by
+     default; GSAP sets the from-state only when it is allowed to animate, so
+     reduced motion and a blocked CDN both get the full static hierarchy.   */
+  if(reduce || !window.gsap) return;
+
+  var g = window.gsap;
+  if(window.ScrollTrigger) g.registerPlugin(window.ScrollTrigger);
+
+  /* Lenis only where it cannot fight a touch thumb or the embed's own scroll */
+  if(window.Lenis && window.matchMedia('(min-width:700px)').matches){
+    var lenis = new window.Lenis({ lerp:0.09, syncTouch:false });
+    (function raf(t){ lenis.raf(t); requestAnimationFrame(raf); })();
+    if(window.ScrollTrigger){ lenis.on('scroll', window.ScrollTrigger.update); }
+  }
+
+  var E = 'power3.out';
+  var inView = function(n){ return n && n.getBoundingClientRect().top < window.innerHeight * 0.9; };
+  var blocks = [document.querySelector('.terms'),
+                el('act'), document.querySelector('.sig')].filter(Boolean);
+
+  /* gesture 1 · the opening. Masthead rule draws, then the headline unmasks. */
+  var tl = g.timeline({ defaults:{ ease:E } });
+  tl.from('.mast .rule',   { scaleX:0, duration:1.1 }, 0)
+    .from('.mast > div, .amark', { y:10, opacity:0, duration:.8, stagger:.07 }, .06)
+    .from('h1', { y:16, opacity:0, duration:1.15,
+                  clipPath:'inset(-22% -6% 108% -6%)', clearProps:'clipPath' }, .2);
+
+  /* gesture 2 · reading blocks rise, paced. In view at load they join the
+     opening timeline so the argument arrives in order; below the fold they
+     wait for the scroll, so the reader leads and the page follows.          */
+  blocks.forEach(function(node, i){
+    var isAct = node === el('act');
+    var rules = node.querySelectorAll ? node.querySelectorAll('.rl') : [];
+
+    function play(delay){
+      var t = g.timeline({ delay:delay||0, defaults:{ ease:E } });
+      t.from(node, { y:isAct ? 26 : 14, opacity:0, duration:isAct ? 1.05 : .9,
+                     clearProps:'transform,opacity' }, 0);
+      /* gesture 3 · the term rules draw in from the left */
+      if(rules.length) t.from(rules, { scaleX:0, duration:.7, stagger:.07, clearProps:'transform' }, .18);
+      /* the band carries the weight in this section, so it arrives after the rules */
+      if(node === document.querySelector('.terms')){
+        t.from('.trade .cell', { y:12, opacity:0, duration:.8, stagger:.1,
+                                 clearProps:'transform,opacity' }, .26);
+      }
+      /* gesture 4 · the destination blooms. It should feel arrived at. */
+      if(isAct){
+        t.from('#actglow', { opacity:0, duration:1.3, ease:'sine.out' }, .1)
+         .from('.acth',    { y:10, opacity:0, duration:.8 }, .22)
+         .from('#actnote', { y:8,  opacity:0, duration:.8 }, .3)
+         .from('.fields input', { y:10, opacity:0, duration:.72, stagger:.09,
+                                  clearProps:'transform,opacity' }, .34)
+         .from('#getbtn',  { y:10, opacity:0, scale:.985, duration:.85,
+                             clearProps:'transform,opacity' }, .52);
+      }
+    }
+
+    if(inView(node)){ play(.5 + i * 0.13); }
+    else if(window.ScrollTrigger){
+      window.ScrollTrigger.create({ trigger:node, start:'top 88%', once:true,
+        onEnter:function(){ play(0); } });
+    } else { play(.5 + i * 0.13); }
+  });
+
+  /* atmosphere: the light field drifts slower than the page */
+  if(window.ScrollTrigger){
+    g.to('#underlay', { yPercent:6, ease:'none', scrollTrigger:{
+      trigger:document.body, start:'top top', end:'bottom bottom', scrub:.7 } });
+  }
+
+  /* ── the story ───────────────────────────────────────────────────────────
+     One chained timeline, not six independent risers and a scroll scrub. The
+     argument is sequential, so the motion is too: each line hands off to the
+     next, and the scene behind them is driven by the SAME timeline, so the
+     filaments separate exactly while the reader is on the problem line and
+     the light sweeps back exactly as "AURA tells them first." lands.
+
+     Timed, not scrubbed. Scrubbing ties the pace to the thumb, which on a
+     phone means the beats land in whatever order the flick decides. A fired
+     timeline means every reader gets the argument in the order it was built.
+
+     Boots only here, which means never under reduced motion and never without
+     GSAP, because this whole block returns before it on either. AURA_SCENE
+     returns false on no WebGL2 or a failed shader compile; in that case the
+     lines still run their sequence and the dead layer is removed, so the
+     section degrades to exactly what it reads with scripting off.         */
+  var story = document.getElementById('story');
+  if(story){
+    var lit = false;
+    if(window.AURA_SCENE){
+      try{ lit = window.AURA_SCENE(); }catch(e){ lit = false; }
+    }
+    if(!lit){ var dead = document.getElementById('scene'); if(dead) drop(dead); }
+
+    var sp = { v:0 };
+    var push = lit && window.AURA_SET
+      ? function(){ window.AURA_SET(sp.v); } : function(){};
+
+    function tellStory(delay){
+      var t = g.timeline({ delay:delay||0, defaults:{ ease:E } });
+
+      /* beat 1 · the question */
+      t.from('.q', { y:18, opacity:0, duration:.85,
+                     clipPath:'inset(-30% -8% 110% -8%)',
+                     clearProps:'clipPath,transform,opacity' }, 0)
+
+       /* beat 2 · what it is. Hands off before the question has settled. */
+       .from('.ans', { y:14, opacity:0, duration:.85,
+                       clearProps:'transform,opacity' }, .42)
+
+       /* beat 3 · the rule divides the definition from the argument */
+       .from('.pitch', { borderTopColor:'rgba(201,168,76,0)', duration:.7,
+                         clearProps:'borderTopColor' }, 1.08)
+
+       /* beat 4 · the problem. Behind it the two filaments pull apart and the
+          warmth drains out of them: the gap nobody is watching.            */
+       .from('.prob', { y:12, opacity:0, duration:.8,
+                        clearProps:'transform,opacity' }, 1.2)
+
+       /* beat 5 · the mark strikes */
+       .from('.sol .m', { scale:0, rotation:-120, opacity:0, duration:.7,
+                          transformOrigin:'50% 50%', ease:'back.out(2.2)',
+                          clearProps:'transform,opacity' }, 2.0)
+
+       /* beat 6 · the answer lands, and the light sweeps back into the gap */
+       .from('.solh', { y:16, opacity:0, duration:.9,
+                        clipPath:'inset(-30% -8% 112% -8%)',
+                        clearProps:'clipPath,transform,opacity' }, 2.12)
+
+       /* beat 7 · the proof */
+       .from('.claim', { y:10, opacity:0, duration:.8,
+                         clearProps:'transform,opacity' }, 2.72)
+
+       /* beat 8 · and the claim itself ignites, last, on its own.
+          Colour only: the phrase wraps, so it must stay inline.            */
+       .from('.claim b', { color:'rgba(245,240,232,0.72)', duration:.75,
+                           ease:'sine.out', clearProps:'color' }, 3.18);
+
+      /* the scene rides the same clock. Four segments, each tuned so the
+         shader's own beat windows line up with the line being read.        */
+      if(lit){
+        t.to(sp, { v:0.30, duration:1.2,  ease:'sine.inOut', onUpdate:push }, 0)
+         .to(sp, { v:0.62, duration:0.95, ease:'power2.in',  onUpdate:push }, 1.2)
+         .to(sp, { v:0.93, duration:0.95, ease:'power2.out', onUpdate:push }, 2.12)
+         .to(sp, { v:1.00, duration:0.7,  ease:'sine.out',   onUpdate:push }, 3.07);
+      }
+      return t;
+    }
+
+    if(inView(story)) tellStory(.62);
+    else if(window.ScrollTrigger){
+      window.ScrollTrigger.create({ trigger:story, start:'top 86%', once:true,
+        onEnter:function(){ tellStory(0); } });
+    } else tellStory(.62);
+  }
+});
+</script>
+</body>
+</html>
